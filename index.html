@@ -235,9 +235,9 @@ async function finish(otomatis = false) {
         return acc;
     }, []);
 
-    if (soalKosong.length > 0) {
-        const lanjut = confirm(`Masih ada ${soalKosong.length} soal yang belum dijawab:\nSoal nomor: ${soalKosong.join(", ")}\n\nApakah kamu tetap ingin mengumpulkan?`);
-        if (!lanjut) return;
+    if (!otomatis && soalKosong.length > 0) {
+    const lanjut = confirm(`Masih ada ${soalKosong.length} soal yang belum dijawab:\nSoal nomor: ${soalKosong.join(", ")}\n\nApakah kamu tetap ingin mengumpulkan?`);
+    if (!lanjut) return;
     }
     
     clearInterval(timerInterval);

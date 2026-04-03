@@ -9,6 +9,25 @@
         :root { --primary: #4facfe; --secondary: #00f2fe; --success: #4caf50; }
         * { box-sizing: border-box; } 
         body { margin: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, var(--primary), var(--secondary)); min-height: 100vh; padding: 20px 10px; }
+
+#loginSection {
+    background-image: url('https://drive.google.com/uc?export=view&id=1WgNKxq8EI3_ok_bq2uBW1CnDuh6ANToW');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+#loginSection::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 20px;
+    z-index: 0;
+}
+
+#loginSection { position: relative; }
+#loginSection > * { position: relative; z-index: 1; }
         .container { background: white; padding: 30px; width: 100%; max-width: 600px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); margin: 0 auto; }
         .hidden { display: none !important; }
         .nav-soal { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
@@ -104,7 +123,7 @@
         { q: "Pesan moral dari cerita rakyat Malin Kundang adalah ....", a: ["Harus berbakti pada orang tua", "Rajin membaca", "Berhemat uang", "Belajar keras"], c: 0 },
         { q: "Kalimat: “Ayah membeli ayam, ibu memasak ayam.” Gagasan pokoknya adalah ....", a: ["Ayah suka makan ayam.", "Ayah dan ibu memasak bersama.", "Ayah membeli ayam dan ibu memasak.", "Ibu pergi ke pasar."], c: 2 },
         { q: "Sebuah cerita anak terdiri dari 60 paragraf. Jika membaca 12 paragraf per hari, berapa hari untuk menyelesaikan bacaan?", a: ["3 hari", "4 hari", "5 hari", "6 hari"], c: 2 },
-        { q: "Look at the sign: [No parking sign]. What does it mean?", a: ["No parking", "Do not run", "Do not throw garbage everywhere", "Do not smoke"], c: 0 },
+        { q: "Look at the sign below. What does it mean?<br><br><img src='https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Aiga_NoParking_-_Red.svg/500px-Aiga_NoParking_-_Red.svg.png' style='width:120px; display:block; margin:10px auto;'>", a: ["No parking", "Do not run", "Do not throw garbage everywhere", "Do not smoke"], c: 0 },
         { q: "Fill the blank: She .... to school every day by bicycle.", a: ["go", "going", "gone", "goes"], c: 3 },
         { q: "A menu shows: Fried rice Rp15.000, Noodles Rp12.000, Ice tea Rp5.000. If you have Rp20.000, what can you buy?", a: ["Fried rice only", "Ice tea only", "Fried rice and Ice tea", "Noodles and Ice tea"], c: 3 },
         { q: "“My favorite subject is Science because I like doing experiments.” Why does the writer like Science?", a: ["Because of the experiments", "Because of the teacher", "Because it is easy", "Because it is hard"], c: 0 },
@@ -114,7 +133,10 @@
         { q: "Dari benda berikut: batu, plastik, besi, kayu. Manakah penghantar listrik?", a: ["Besi", "Plastik", "Batu", "Kayu"], c: 0 },
         { q: "Mengapa bumi disebut planet yang layak huni?", a: ["Karena ukurannya besar", "Karena banyak pegunungan", "Karena dekat dengan matahari", "Karena memiliki air, oksigen, dan suhu sesuai"], c: 3 },
         { q: "Saat kita berlari, jantung berdetak lebih cepat. Hal ini terjadi karena ....", a: ["Tubuh sedang lapar", "Tubuh butuh lebih banyak oksigen", "Tubuh ingin istirahat", "Paru-paru berhenti bekerja"], c: 1 },
-        { q: "Perhatikan pernyataan berikut!<br>1. Bernafas dengan paru-paru<br>2. Memiliki kelenjar susu<br>3. Berkembang biak dengan bertelur<br>4. Tubuh ditutupi bulu<br><br>Ciri-ciri hewan mamalia ditunjukkan oleh nomor ....", a: ["1 dan 2", "2 dan 3", "3 dan 4", "1 dan 4"], c: 0 }
+        { q: "Perhatikan pernyataan berikut!<br>1. Bernafas dengan paru-paru<br>2. Memiliki kelenjar susu<br>3. Berkembang biak dengan bertelur<br>4. Tubuh ditutupi bulu<br><br>Ciri-ciri hewan mamalia ditunjukkan oleh nomor ....", a: ["1 dan 2", "2 dan 3", "3 dan 4", "1 dan 4"], c: 0 },
+        { q: "Bagian tubuh yang berfungsi menyaring kotoran dari darah adalah ....", a: ["Usus", "Ginjal", "Paru-paru", "Otak"], c: 1 },
+        { q: "Mengapa otak disebut pusat pengendali tubuh?", a: ["Karena ukurannya besar", "Karena melindungi tulang", "Karena letaknya di kepala", "Karena mengatur semua aktivitas tubuh"], c: 3 },
+        { q: "Bacalah teks berikut!<br><br><em>\"Andi rajin menabung di celengannya setiap minggu. Ia menyisihkan sebagian uang jajannya agar suatu saat bisa membeli sepeda impiannya.\"</em><br><br>Sikap Andi patut ditiru karena ....", a: ["Ia ingin terlihat kaya di depan teman-temannya", "Ia berusaha hemat dan punya tujuan yang jelas", "Ia suka menunda membeli barang", "Ia tidak suka berbagi dengan teman"], c: 1 }
     ];
 
     let currentIdx = 0;

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT - Persistence Check</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #4facfe; --secondary: #00f2fe; --success: #4caf50; }
+        * { box-sizing: border-box; } 
+        body { margin: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, var(--primary), var(--secondary)); min-height: 100vh; padding: 20px 10px; }
+        .container { background: white; padding: 30px; width: 100%; max-width: 600px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); margin: 0 auto; }
+        .hidden { display: none !important; }
+        .nav-soal { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .nav-soal button { width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: #f9f9f9; font-size: 14px; }
+        .nav-soal button.answered { background: var(--success) !important; color: white; border-color: var(--success); }
+        .nav-soal button.active { background: #333 !important; color: white; }
+        * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        }
+        input, textarea {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+        #soalText { font-weight: 600; font-size: 16px; line-height: 1.6; margin-bottom: 15px; }
+        .opsi-item { display: block; padding: 12px; margin-top: 10px; border: 1px solid #eee; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 15px; }
+        .opsi-item:hover { background: #f0f7ff; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 15px; }
+        .btn-blue { background: var(--primary); }
+        #timer { font-weight: bold; color: red; }
+        /* Style tambahan untuk loading */
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; flex-direction: column; }
+        
+        @media (max-width: 600px) {
+            .container { padding: 20px 15px; margin: 10px auto; }
+            #soalText { font-size: 14px; }
+            .opsi-item { font-size: 13px; padding: 10px; }
+            .nav-soal button { width: 34px; height: 34px; font-size: 12px; }
+            .btn { padding: 10px; font-size: 14px; }
+            textarea { font-size: 13px; }
+        }
+        @keyframes spin {
+    to { transform: rotate(360deg); }
+}
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-overlay hidden">
+        <p>Sedang mengirim jawaban...</p>
+    </div>
+
+    <div id="loginSection" class="container">
+        <h2 style="text-align:center">Login Ujian</h2>
+        <input type="text" id="nama" placeholder="Nama Lengkap" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc;">
+        <input type="password" id="no" placeholder="Nomor Peserta" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc;">
+        <button class="btn btn-blue" onclick="handleLogin()">Masuk</button>
+    </div>
+
+    <div id="quizSection" class="container hidden">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div id="userInfo"></div>
+                <button onclick="logout()" style="padding:6px 14px; border-radius:20px; border:1.5px solid #ff5c5c; background:#fff; color:#ff5c5c; cursor:pointer; font-size:12px; font-weight:600; letter-spacing:0.5px; transition:0.2s;" onmouseover="this.style.background='#ff5c5c';this.style.color='#fff';" onmouseout="this.style.background='#fff';this.style.color='#ff5c5c';">⏻ Logout</button>
+            </div>
+            <div id="timer">00:00</div>
+        </div>
+        <div class="nav-soal" id="navSoal"></div>
+        <div id="soalBox">
+            <p id="soalText"></p>
+            <div id="opsiContainer"></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn btn-blue" style="background:#888" onclick="move(-1)">Soal Sebelumnya</button>
+            <button class="btn btn-blue" onclick="move(1)">Soal Berikutnya</button>
+        </div>
+        <button class="btn" style="background:var(--success)" id="btnFinish" onclick="finish()">Kumpulkan</button>
+    </div>
+
+<script>
+    // URL Web App Script Anda
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzbZHSlMUQrXhxobWSh0HXtijGD4pe0XgVzNypFHo_QuMh6tiTzmPaR-4XTVU4pmog9/exec";
+
+    const soalData = [
+        { type: "isian", q: "Tuliskan hobby kamu …<br><small>(Pisahkan dengan tanda koma (,) jika hobby nya lebih dari satu. contoh: main bola, nyanyi)</small>" },
+        { type: "isian", q: "Tuliskan cita-cita kamu …<br><small>(Pisahkan dengan tanda koma (,) jika cita-cita nya lebih dari satu. contoh: dokter, guru)</small>" },
+        { q: "Seorang pedagang membawa 48 mangga. Ia membagi rata ke 6 keranjang. Dua keranjang diberikan ke tetangga. Berapa sisa mangga yang dimiliki pedagang?", a: ["16", "24", "32", "40"], c: 2 },
+        { q: "Sebuah mobil menempuh 120 km dalam 2 jam. Jika kecepatannya tetap, berapa jarak yang ditempuh dalam 3,5 jam?", a: ["150 km", "180 km", "200 km", "210 km"], c: 2 },
+        { q: "Toko A menjual pensil Rp2.500/buah. Toko B menjual Rp7.000 untuk 3 buah. Jika membeli 9 buah, toko mana lebih hemat?", a: ["Sama saja", "Toko A lebih hemat Rp500", "Toko B lebih hemat Rp1.500", "Toko A lebih mahal Rp2.000"], c: 2 },
+        { q: "Sebuah kolam berisi 120 liter air. Setiap hari berkurang 12 liter. Setelah berapa hari air tinggal 36 liter?", a: ["5 hari", "6 hari", "7 hari", "8 hari"], c: 2 },
+        { q: "Siti membeli 2 roti seharga Rp3.000/buah dan 1 botol air mineral Rp4.000. Ia membayar Rp10.000. Berapa kembalian yang diterima Siti?", a: ["Rp1.000", "Rp2.000", "Rp500", "Rp0"], c: 3 },
+        { q: "Sebuah buku cerita memiliki 120 halaman. Rani membaca 20 halaman setiap hari. Jika ia ingin selesai dalam 5 hari, apakah cukup?", a: ["Ya, cukup", "Tidak, masih kurang 20 halaman", "Tidak, masih kurang 10 halaman", "Ya, bahkan sisa 20 halaman"], c: 1 },
+        { q: "Rani membeli 1 kg gula Rp14.000 dan 2 liter minyak Rp13.000/liter. Ia membayar Rp50.000. Berapa kembalian Rani?", a: ["Rp8.000", "Rp9.000", "Rp10.000", "Rp11.000"], c: 2 },
+        { q: "“Adi rajin merawat tanaman di rumah. Ia menyiram setiap pagi dan sore.” Nilai apa yang dapat diteladani dari Adi?", a: ["Malas", "Rajin dan peduli lingkungan", "Suka bermain", "Boros air"], c: 1 },
+        { q: "Iklan berbunyi: “Diskon 50%! Beli 2 gratis 1. Berlaku Sabtu-Minggu.” Apa maksud iklan itu?", a: ["Konsumen mendapat hadiah uang tunai.", "Berlaku setiap hari.", "Konsumen mendapat potongan harga dan bonus pada hari tertentu.", "Konsumen hanya boleh membeli 2 barang."], c: 2 },
+        { q: "“Budi melihat sampah di taman, lalu ia membuangnya ke tempat sampah.” Nilai karakter apa yang diteladani?", a: ["Jujur", "Peduli lingkungan", "Hemat", "Rajin belajar"], c: 1 },
+        { q: "“Dina membaca buku cerita lalu menuliskan ringkasannya.” Apa manfaat kegiatan Dina?", a: ["Melatih pemahaman bacaan.", "Memboroskan waktu.", "Mengurangi kemampuan menulis.", "Membuat cepat lupa isi bacaan."], c: 0 },
+        { q: "Pesan moral dari cerita rakyat Malin Kundang adalah ....", a: ["Harus berbakti pada orang tua", "Rajin membaca", "Berhemat uang", "Belajar keras"], c: 0 },
+        { q: "Kalimat: “Ayah membeli ayam, ibu memasak ayam.” Gagasan pokoknya adalah ....", a: ["Ayah suka makan ayam.", "Ayah dan ibu memasak bersama.", "Ayah membeli ayam dan ibu memasak.", "Ibu pergi ke pasar."], c: 2 },
+        { q: "Sebuah cerita anak terdiri dari 60 paragraf. Jika membaca 12 paragraf per hari, berapa hari untuk menyelesaikan bacaan?", a: ["3 hari", "4 hari", "5 hari", "6 hari"], c: 2 },
+        { q: "Look at the sign: [No parking sign]. What does it mean?", a: ["No parking", "Do not run", "Do not throw garbage everywhere", "Do not smoke"], c: 0 },
+        { q: "Fill the blank: She .... to school every day by bicycle.", a: ["go", "going", "gone", "goes"], c: 3 },
+        { q: "A menu shows: Fried rice Rp15.000, Noodles Rp12.000, Ice tea Rp5.000. If you have Rp20.000, what can you buy?", a: ["Fried rice only", "Ice tea only", "Fried rice and Ice tea", "Noodles and Ice tea"], c: 3 },
+        { q: "“My favorite subject is Science because I like doing experiments.” Why does the writer like Science?", a: ["Because of the experiments", "Because of the teacher", "Because it is easy", "Because it is hard"], c: 0 },
+        { q: "Rearrange the words: homework / did / yesterday / your / you / do", a: ["Did your homework do you yesterday?", "Do your homework did you yesterday?", "Did you do your homework yesterday?", "Yesterday did you your homework?"], c: 2 },
+        { q: "Menu: Burger Rp15.000, Sandwich Rp10.000, Juice Rp5.000. If you have Rp20.000, which items can you buy?", a: ["Burger and Juice", "Sandwich and Juice", "Burger and Sandwich", "Two Sandwiches"], c: 0 },
+        { q: "Tanaman disiram 2 gelas air setiap hari. Dalam 1 minggu, berapa gelas air sudah diberikan?", a: ["10", "12", "13", "14"], c: 3 },
+        { q: "Dari benda berikut: batu, plastik, besi, kayu. Manakah penghantar listrik?", a: ["Besi", "Plastik", "Batu", "Kayu"], c: 0 },
+        { q: "Mengapa bumi disebut planet yang layak huni?", a: ["Karena ukurannya besar", "Karena banyak pegunungan", "Karena dekat dengan matahari", "Karena memiliki air, oksigen, dan suhu sesuai"], c: 3 },
+        { q: "Saat kita berlari, jantung berdetak lebih cepat. Hal ini terjadi karena ....", a: ["Tubuh sedang lapar", "Tubuh butuh lebih banyak oksigen", "Tubuh ingin istirahat", "Paru-paru berhenti bekerja"], c: 1 },
+        { q: "Perhatikan pernyataan berikut!<br>1. Bernafas dengan paru-paru<br>2. Memiliki kelenjar susu<br>3. Berkembang biak dengan bertelur<br>4. Tubuh ditutupi bulu<br><br>Ciri-ciri hewan mamalia ditunjukkan oleh nomor ....", a: ["1 dan 2", "2 dan 3", "3 dan 4", "1 dan 4"], c: 0 }
+    ];
+
+    let currentIdx = 0;
+    let jawabanPeserta = new Array(soalData.length).fill(null);
+    let timerInterval;
+
+    const daftarPeserta = {
+        "42627001": "AKMAL PUTRA ALHADI", "42627002": "ALARIC ZEROUN", "42627003": "ALFAZRI ABUH GUSTI KOMARA", 
+        "42627004": "ALTHAN GERALD GHAZANFAR", "42627005": "AZKA SALMAN FAUZI", "42627006": "CHAERUNISSA RAMADHANTI",
+        "42627007": "DEANNISA AURA LATIFA", "42627008": "DHAFFA RAY PRATAMA", "42627009": "FATIH AL FARIZI",
+        "42627010": "FAUZI AMRI DIRGANTARA", "42627011": "GEA ELFARIZA KUSWANDI", "42627012": "KANAYA PUTRI PRATIWI",
+        "42627013": "LIDIA FITRI RAMADHANI", "42627014": "LUTFIR RAHMAN SOMANTRI", "42627015": "MEISYA RAHMA FAUZIYAH",
+        "42627016": "MOCHAMAD ADZFAR FAUZAN", "42627017": "MUHAMAD IKHBAR JESA PRATAMA", "42627018": "MUHAMAD NABIL FAEYZA RAFFANDRA",
+        "42627019": "MUHAMMAD AMZAR SATYADOUSTY", "42627020": "MUHAMMAD AZHAR SATYADOUSTY", "42627021": "MUHAMMAD AZMI IBRAHIM AL-AMIN",
+        "42627022": "MUHAMMAD RAFIF", "42627023": "MUHAMMAD RIZAL AZHARI", "42627024": "NI KETUT CITRA ASRI DEWINA",
+        "42627025": "NUR MADINAH", "42627026": "RAISA MAULIDA SUHENDAR", "42627027": "RASYID AULIA RAHMAN",
+        "42627028": "SHAFIX ABDULLAH AZZAM", "42627029": "SITI DZAKIYYA TAMIMATU", "42627030": "SYAHLA KHALIFA DWI ANDIRA",
+        "42627031": "ZIDNI AHSAN FIRDAUS", "1234": "ARDI"
+    };
+
+    function handleLogin() {
+        const nama = document.getElementById("nama").value.toUpperCase().trim();
+        const no = document.getElementById("no").value.trim();
+        if (daftarPeserta[no] && daftarPeserta[no] === nama) {
+            localStorage.setItem("user_aktif", nama);
+            localStorage.setItem("no_aktif", no); // Simpan nomor untuk pengiriman
+            localStorage.setItem("is_ujian", "true");
+            if (!localStorage.getItem("sisa_detik")) localStorage.setItem("sisa_detik", "30");
+            startQuiz();
+        } else {
+            alert("Nama atau Nomor Peserta salah!");
+        }
+    }
+
+    function startQuiz() {
+        const savedJawaban = localStorage.getItem("simpan_jawaban");
+        if (savedJawaban) jawabanPeserta = JSON.parse(savedJawaban);
+        
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("quizSection").classList.remove("hidden");
+        document.getElementById("userInfo").innerText = "👤 " + localStorage.getItem("user_aktif");
+
+        const savedIdx = localStorage.getItem("current_soal");
+        if (savedIdx !== null) currentIdx = parseInt(savedIdx);
+
+        renderNav();
+        renderSoal();
+        startTimer();
+    }
+
+    function renderSoal() {
+        const s = soalData[currentIdx];
+        const container = document.getElementById("opsiContainer");
+        document.getElementById("soalText").innerHTML = `${currentIdx + 1}. ${s.q}`;
+        
+        let html = "";
+        if (s.type === "isian") {
+            html = `<textarea oninput="pilih(this.value)" placeholder="Ketik jawaban..." style="width:100%; height:80px; padding:10px; border-radius:10px; border:1px solid #ccc; font-family:inherit;">${jawabanPeserta[currentIdx] || ""}</textarea>`;
+        } else {
+            s.a.forEach((opt, i) => {
+                const isChecked = (jawabanPeserta[currentIdx] === i) ? "checked" : "";
+                html += `<label class="opsi-item"><input type="radio" name="q" ${isChecked} onchange="pilih(${i})"> ${opt}</label>`;
+            });
+        }
+        container.innerHTML = html;
+    }
+
+    function pilih(val) {
+        jawabanPeserta[currentIdx] = val;
+        localStorage.setItem("simpan_jawaban", JSON.stringify(jawabanPeserta));
+        renderNav();
+    }
+
+    function renderNav() {
+        const nav = document.getElementById("navSoal");
+        nav.innerHTML = "";
+        soalData.forEach((_, i) => {
+            const btn = document.createElement("button");
+            btn.innerText = i + 1;
+            if (jawabanPeserta[i] !== null && jawabanPeserta[i] !== "") btn.classList.add("answered");
+            if (i === currentIdx) btn.classList.add("active");
+            btn.onclick = () => { currentIdx = i; localStorage.setItem("current_soal", i); renderSoal(); renderNav(); };
+            nav.appendChild(btn);
+        });
+    }
+
+    function move(step) {
+        let t = currentIdx + step;
+        if (t >= 0 && t < soalData.length) {
+            currentIdx = t;
+            localStorage.setItem("current_soal", t);
+            renderSoal(); renderNav();
+        }
+    }
+
+    function startTimer() {
+        if (timerInterval) return;
+        let time = Number(localStorage.getItem("sisa_detik"));
+        timerInterval = setInterval(() => {
+            time--;
+            localStorage.setItem("sisa_detik", time);
+            let m = Math.floor(time/60), s = time%60;
+            document.getElementById("timer").innerText = `${m}:${s<10?'0'+s:s}`;
+            if (time <= 0) { clearInterval(timerInterval); finish(true); }
+        }, 1000);
+    }
+
+    function logout() {
+        if (confirm("Apakah kamu yakin? Setelah logout jawaban yang udah kamu pilih akan hilang.")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+    
+// Tambahkan parameter 'otomatis' dan jadikan fungsi ini 'async'
+async function finish(otomatis = false) {
+    const soalKosong = jawabanPeserta.reduce((acc, val, idx) => {
+        if (val === null || val === "") acc.push(idx + 1);
+        return acc;
+    }, []);
+
+    if (soalKosong.length > 0) {
+        const lanjut = confirm(`Masih ada ${soalKosong.length} soal yang belum dijawab:\nSoal nomor: ${soalKosong.join(", ")}\n\nApakah kamu tetap ingin mengumpulkan?`);
+        if (!lanjut) return;
+    }
+    
+    clearInterval(timerInterval);
+    
+    // Munculkan layar loading
+    const loadingDiv = document.getElementById("loading");
+    loadingDiv.classList.remove("hidden");
+    loadingDiv.innerHTML = `
+    <div style="text-align:center;">
+        <div style="width:48px; height:48px; border:5px solid #e0e0e0; border-top-color:#4facfe; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px;"></div>
+        <p style="font-size:16px; font-weight:bold; color:#333;">Sedang mengirim jawaban...</p>
+    </div>
+`; // Set teks awal
+    
+    const btnFinish = document.getElementById("btnFinish");
+    if (btnFinish) {
+        btnFinish.disabled = true;
+        btnFinish.innerText = "Mengirim...";
+    }
+
+    // Siapkan Data
+    const data = {
+        nama: localStorage.getItem("user_aktif"),
+        no: localStorage.getItem("no_aktif"),
+        jawaban: jawabanPeserta, 
+        waktu_selesai: new Date().toLocaleString('id-ID')
+    };
+
+    // Kirim Data
+    try {
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+
+        // Jika Sukses: Ubah teks di layar loading tanpa pakai alert()
+        loadingDiv.innerHTML = "<p style='color: green; font-size: 20px; font-weight: bold;'>✅ Jawaban berhasil dikumpulkan!</p>";
+        
+        // Beri jeda 2 detik agar siswa bisa membaca pesan, lalu refresh
+        setTimeout(() => {
+            localStorage.clear();
+            location.reload();
+        }, 2000);
+
+    } catch (error) {
+        console.error("Error Detail:", error);
+
+        loadingDiv.innerHTML = `
+            <div style="text-align:center;">
+                <p style="color:red; font-size:18px; font-weight:bold;">❌ Gagal mengumpulkan jawaban.</p>
+                <p style="font-size:14px; color:#555;">Jawaban kamu belum berhasil dikumpulkan, silakan coba kirim lagi.</p>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+                    <button onclick="finish()" style="padding:10px 20px; background:#4facfe; color:white; border:none; border-radius:10px; font-size:15px; cursor:pointer;">Kirim Ulang</button>
+                    <button onclick="batalKirim()" style="padding:10px 20px; background:#888; color:white; border:none; border-radius:10px; font-size:15px; cursor:pointer;">Batal</button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+    function batalKirim() {
+    document.getElementById("loading").classList.add("hidden");
+    const btnFinish = document.getElementById("btnFinish");
+    if (btnFinish) {
+        btnFinish.disabled = false;
+        btnFinish.innerText = "Kumpulkan";
+    }
+}
+    window.onload = () => {
+    const isUjian = localStorage.getItem("is_ujian") === "true";
+    const adaNama = localStorage.getItem("user_aktif");
+    const adaNo = localStorage.getItem("no_aktif");
+
+    if (isUjian && adaNama && adaNo) {
+        startQuiz();
+    }
+};
+
+</script>
+</body>
+</html>

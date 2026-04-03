@@ -273,18 +273,13 @@ async function finish(otomatis = false) {
     };
 
     // Kirim Data
-   // try {
-     //   await fetch(SCRIPT_URL, {
-       //     method: "POST",
-         //   body: JSON.stringify(data)
-        //});
-
-const response = await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(data)
-});
-const hasilTeks = await response.text();
-console.log("Respons AppScript:", hasilTeks);
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        const hasilTeks = await response.text();
+        console.log("Respons AppScript:", hasilTeks);
         
 
         // Jika Sukses: Ubah teks di layar loading tanpa pakai alert()
